@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Динамическая таблица | Добавление / удаление колонок</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, 'Roboto', sans-serif;
+            min-height: 100vh;
+            padding: 2rem 1.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* главный контейнер */
+        .dashboard {
+            max-width: 1400px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(2px);
+            border-radius: 2rem;
+            padding: 1.5rem;
+            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s;
+        }
+
+        /* панель управления */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+            align-items: center;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            padding: 0.7rem 1.6rem;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(105deg, #3b82f6, #2563eb);
+            border: none;
+            box-shadow: 0 8px 20px -8px #1e3a8a;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(105deg, #2563eb, #1d4ed8);
+            box-shadow: 0 12px 24px -10px #1e3a8a;
+        }
+
+        .btn-danger {
+            background: linear-gradient(105deg, #ef4444, #dc2626);
+            border: none;
+            box-shadow: 0 8px 20px -8px #7f1d1d;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(105deg, #dc2626, #b91c1c);
+        }
+
+        .btn-outline {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid #94a3b8;
+        }
+
+        .btn-outline:hover {
+            background: #334155;
+            border-color: #cbd5e1;
+            transform: scale(0.97);
+        }
+
+        .info-badge {
+            background: #0f172acc;
+            border-radius: 40px;
+            padding: 0.4rem 1rem;
+            font-size: 0.85rem;
+            color: #cbd5e6;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            backdrop-filter: blur(4px);
+        }
+
+        /* таблица обертка с прокруткой для адаптива */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 1.2rem;
+            background: #0f172a80;
+            padding: 0.15rem;
+            transition: all 0.2s;
+        }
+
+        /* Стиль динамической таблицы */
+        .dynamic-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+            min-width: 500px;
+            background: #ffffff;
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 12px 28px -8px rgba(0, 0, 0, 0.25);
+        }
+
+        .dynamic-table th,
+        .dynamic-table td {
+            padding: 1rem 1rem;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+            border-right: 1px solid #eef2ff;
+            vertical-align: middle;
+            transition: background 0.1s ease;
+        }
+
+        .dynamic-table th:last-child,
+        .dynamic-table td:last-child {
+            border-right: none;
+        }
+
+        /* Стиль шапки */
+        .dynamic-table th {
+            background: linear-gradient(112deg, #1e293b, #0f172a);
+            color: #f1f5f9;
+            font-weight: 600;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            border-bottom: 2px solid #3b82f6;
+            position: relative;
+        }
+
+        /* ячейки тела */
+        .dynamic-table td {
+            background-color: white;
+            color: #0f172a;
+            font-weight: 500;
+        }
+
+        /* чередование строк */
+        .dynamic-table tbody tr:nth-child(even) td {
+            background-color: #f9fafc;
+        }
+
+        .dynamic-table tbody tr:hover td {
+            background-color: #eef2ff;
+            transition: 0.1s;
+        }
+
+        /* кнопка удаления колонки в шапке (крестик) */
+        .col-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .delete-col-btn {
+            background: rgba(220, 38, 38, 0.15);
+            border: none;
+            font-size: 0.75rem;
+            font-weight: bold;
+            cursor: pointer;
+            width: 24px;
+            height: 24px;
+            border-radius: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #b91c1c;
+            transition: 0.2s;
+            margin-left: 8px;
+            backdrop-filter: blur(2px);
+        }
+
+        .delete-col-btn:hover {
+            background: #ef4444;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        /* предупреждение, если колонок мало */
+        .warning-message {
+            background: #fef9c3;
+            color: #854d0e;
+            font-size: 0.8rem;
+            border-radius: 32px;
+            padding: 0.4rem 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .footer-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1.2rem;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        @media (max-width: 680px) {
+            body {
+                padding: 1rem;
+            }
+            .dynamic-table th, .dynamic-table td {
+                padding: 0.7rem 0.5rem;
+                font-size: 0.8rem;
+            }
+            .btn {
+                padding: 0.5rem 1.2rem;
+                font-size: 0.85rem;
+            }
+        }
+
+        /* анимация при добавлении/удалении */
+        .dynamic-table {
+            transition: all 0.15s;
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard">
+    <div class="controls">
+        <button class="btn btn-primary" id="addColumnBtn">➕ Добавить колонку</button>
+        <button class="btn btn-danger" id="removeLastColumnBtn">❌ Удалить последнюю колонку</button>
+        <div class="info-badge">
+            📊 Колонок: <span id="columnCount">3</span> | Строк: 5 (фикс)
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table class="dynamic-table" id="dynamicTable">
+            <thead id="tableHead">
+                <!-- шапка будет генерироваться через JS -->
+            </thead>
+            <tbody id="tableBody">
+                <!-- тело таблицы: 5 строк, динамические ячейки -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer-info">
+        <div class="warning-message" id="warningMsg" style="display: none;">
+            ⚠️ Нельзя удалить единственную колонку!
+        </div>
+        <div class="info-badge">
+            💡 Кликните на ✖️ в заголовке, чтобы удалить конкретную колонку
+        </div>
+    </div>
+</div>
+
+<script>
+    // Исходные данные: 5 строк, имена столбцов + значения для каждой ячейки
+    // Будем хранить структуру: массив колонок (объекты с названием и массивом значений для 5 строк)
+    let columns = [
+        { name: "Сотрудник", values: ["Анна К.", "Дмитрий В.", "Елена П.", "Сергей М.", "Ольга Т."] },
+        { name: "Должность", values: ["Дизайнер", "Разработчик", "Менеджер", "Аналитик", "HR-специалист"] },
+        { name: "Прогресс", values: ["92%", "78%", "100%", "64%", "88%"] }
+    ];
+
+    const TABLE_BODY_ROWS = 5; // фиксированное количество строк (5)
+    const tbody = document.getElementById("tableBody");
+    const thead = document.getElementById("tableHead");
+    const columnCountSpan = document.getElementById("columnCount");
+    const warningMsgDiv = document.getElementById("warningMsg");
+    let hideWarningTimeout = null;
+
+    // Функция для отображения предупреждения на пару секунд
+    function showWarning(text) {
+        if (hideWarningTimeout) clearTimeout(hideWarningTimeout);
+        warningMsgDiv.style.display = "inline-flex";
+        warningMsgDiv.innerHTML = `⚠️ ${text}`;
+        hideWarningTimeout = setTimeout(() => {
+            warningMsgDiv.style.display = "none";
+        }, 2000);
+    }
+
+    // Обновление отображения счетчика колонок
+    function updateColumnCounter() {
+        columnCountSpan.innerText = columns.length;
+        if (columns.length === 1) {
+            // дополнительно можно показать предупреждение, но не блокируем
+            if(!warningMsgDiv.innerText.includes("единственную")){
+                // мягкое предупреждение
+            }
+        }
+    }
+
+    // Функция рендеринга всей таблицы (шапка + 5 строк)
+    function renderTable() {
+        // --- Рисуем шапку ---
+        thead.innerHTML = '';
+        const headerRow = document.createElement('tr');
+        
+        columns.forEach((col, colIndex) => {
+            const th = document.createElement('th');
+            // Контейнер для названия и кнопки удаления
+            const container = document.createElement('div');
+            container.className = 'col-actions';
+            container.style.display = 'flex';
+            container.style.alignItems = 'center';
+            container.style.justifyContent = 'center';
+            container.style.gap = '8px';
+            
+            const colNameSpan = document.createElement('span');
+            colNameSpan.innerText = col.name;
+            colNameSpan.style.fontWeight = '600';
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.innerText = '✖';
+            deleteBtn.className = 'delete-col-btn';
+            deleteBtn.title = `Удалить колонку "${col.name}"`;
+            // событие удаления конкретной колонки
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (columns.length <= 1) {
+                    showWarning("Нельзя удалить последнюю колонку!");
+                    return;
+                }
+                // удаляем колонку по индексу
+                columns.splice(colIndex, 1);
+                renderTable();    // перерисовка
+                updateColumnCounter();
+                // небольшая проверка
+                if (columns.length === 1) {
+                    showWarning("Осталась только одна колонка, но таблица работает.");
+                } else {
+                    // можно показать нейтральное уведомление
+                }
+            });
+            
+            container.appendChild(colNameSpan);
+            container.appendChild(deleteBtn);
+            th.appendChild(container);
+            headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        
+        // --- Рисуем тело таблицы (5 строк) ---
+        tbody.innerHTML = '';
+        for (let rowIdx = 0; rowIdx < TABLE_BODY_ROWS; rowIdx++) {
+            const tr = document.createElement('tr');
+            // для каждой колонки добавляем ячейку с соответствующим значением
+            for (let colIdx = 0; colIdx < columns.length; colIdx++) {
+                const td = document.createElement('td');
+                // получаем значение из массива columns[colIdx].values[rowIdx]
+                // если вдруг значения не хватает (защита от ошибки) — ставим прочерк
+                const cellValue = columns[colIdx].values && columns[colIdx].values[rowIdx] !== undefined 
+                    ? columns[colIdx].values[rowIdx] 
+                    : "—";
+                td.innerText = cellValue;
+                // небольшой изыск: можно добавить стиль для числовых значений
+                tr.appendChild(td);
+            }
+            tbody.appendChild(tr);
+        }
+    }
+    
+    // Функция добавления новой колонки
+    function addColumn() {
+        // Генерируем имя новой колонки: "Новая колонка N"
+        const newColNumber = columns.length + 1;
+        const defaultColName = `Колонка ${newColNumber}`;
+        
+        // Генерируем уникальные значения для 5 строк (кастомный контент)
+        const defaultValues = [];
+        const valueOptions = ["⭐ Новое", "🟢 Активно", "📌 В работе", "🔧 Настройка", "✅ Готово"];
+        for (let i = 0; i < TABLE_BODY_ROWS; i++) {
+            // рандомные или осмысленные данные, но для удобства делаем интересные строки
+            const customOptions = [
+                `Значение ${i+1}.${newColNumber}`,
+                `✏️ Редакт. ${newColNumber}`,
+                `📊 Данные ${newColNumber}`,
+                `⚙️ Параметр ${newColNumber}`,
+                `💡 Идея ${newColNumber}`
+            ];
+            // используем варианты для разнообразия
+            defaultValues.push(customOptions[i % customOptions.length]);
+        }
+        
+        columns.push({
+            name: defaultColName,
+            values: defaultValues
+        });
+        renderTable();
+        updateColumnCounter();
+        // анимация через сам рендер
+        // дополнительно показываем уведомление если нужно
+        if (columns.length > 1) {
+            // успешно
+        }
+    }
+    
+    // Функция удаления последней колонки
+    function removeLastColumn() {
+        if (columns.length <= 1) {
+            showWarning("Нельзя удалить последнюю колонку! Таблица должна иметь хотя бы 1 столбец.");
+            return;
+        }
+        columns.pop();  // удаляем последний элемент
+        renderTable();
+        updateColumnCounter();
+        if (columns.length === 1) {
+            showWarning("Остался только один столбец. Добавьте новые, если нужно.");
+        } else {
+            // обычное удаление
+        }
+    }
+    
+    // Дополнительная функция для инициализации начального состояния и красивой подстановки
+    // чтобы значения выглядели приятно, можно немного "оживить" исходные данные
+    function enhanceInitialData() {
+        // модифицируем начальные данные для большей креативности (но не меняем структуру)
+        // Просто убедимся что для 5 строк все корректно и дизайн радует
+        if (columns[0] && columns[0].values.length === 5) {
+            // оставляем как есть (Анна К, Дмитрий В и т.д)
+        }
+        // Обновляем значения третьего столбца "Прогресс" чтобы были стильные emoji
+        if (columns[2] && columns[2].name === "Прогресс") {
+            columns[2].values = ["92% 🚀", "78% 📈", "100% 🎉", "64% ⏳", "88% 🔥"];
+        }
+        // второй столбец можно оставить но добавить эмодзи
+        if (columns[1] && columns[1].name === "Должность") {
+            columns[1].values = ["🎨 Дизайнер", "💻 Разработчик", "📋 Менеджер", "📊 Аналитик", "🤝 HR-специалист"];
+        }
+    }
+    
+    // Функция для возможности редактирования названия колонки (доп. комфорт - двойной клик)
+    // Добавим более продвинутый UX: по двойному клику на названии колонки можно менять имя
+    function attachInlineEditToHeaders() {
+        // после каждого рендера вешаем обработчики на названия колонок (span с текстом внутри .col-actions > span:first-child)
+        const headerCells = document.querySelectorAll('#dynamicTable th');
+        headerCells.forEach((th, idx) => {
+            const nameSpan = th.querySelector('.col-actions > span:first-child');
+            if (nameSpan && !nameSpan.hasAttribute('data-editable-attached')) {
+                nameSpan.setAttribute('data-editable-attached', 'true');
+                nameSpan.style.cursor = 'pointer';
+                nameSpan.style.borderBottom = '1px dashed rgba(255,255,255,0.5)';
+                nameSpan.title = 'Двойной клик, чтобы изменить название';
+                
+                nameSpan.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    const oldName = columns[idx].name;
+                    const newName = prompt('Введите новое название колонки:', oldName);
+                    if (newName && newName.trim() !== '') {
+                        columns[idx].name = newName.trim();
+                        renderTable();  // перерисовка с новым именем
+                        updateColumnCounter();
+                        // После перерисовки заново прикрепим события (вызовется из рендера)
+                    } else if (newName === '') {
+                        // ничего не меняем
+                    }
+                });
+            }
+        });
+    }
+    
+    // переопределим renderTable, чтобы после отрисовки добавлять редактирование названий
+    const originalRender = renderTable;
+    window.renderTable = function() {
+        originalRender();
+        attachInlineEditToHeaders();
+        // Дополнительно можно добавить эффект на ячейки, но необязательно
+    };
+    renderTable = window.renderTable;
+    
+    // Также после ручных вызовов add/remove будем использовать ту же функцию с обновлением
+    // Перехватываем события кнопок
+    document.getElementById("addColumnBtn").addEventListener("click", () => {
+        addColumn();
+        // после рендера подхватятся inline edit уже внутри renderTable->attach
+    });
+    
+    document.getElementById("removeLastColumnBtn").addEventListener("click", () => {
+        removeLastColumn();
+    });
+    
+    // Инициализация: улучшаем данные, рендерим таблицу, счетчик
+    enhanceInitialData();
+    renderTable();
+    updateColumnCounter();
+    
+    // Дополнительный нюанс: если колонок изначально 3, показываем красивую таблицу
+    // Активируем подсказку при загрузке, что можно удалять колонки.
+    console.log("Динамическая таблица готова. Добавляйте / удаляйте колонки, редактируйте названия двойным кликом.");
+    
+    // Добавим также поддержку сброса предупреждения при клике на любую кнопку, не обязательно
+    // Стили для плавности уже есть.
+    // Дополнительная фича: если кол-во колонок становится 0? Защита уже есть.
+    // При пустом состоянии renderTable корректно отработает, но мы не позволяем удалить последнюю.
+    // Отлично.
+    
+    // Косметически добавим фон для таблицы при маленьком количестве колонок
+    function adjustTableMinWidth() {
+        // просто стилизация
+    }
+    window.addEventListener('resize', adjustTableMinWidth);
+    
+    // Также сделаем кнопку для добавления колонки, которая добавляет интересные имена "Новая метрика"
+    // Но выше стандартная — работает.
+    
+    // НЕБОЛЬШОЙ БОНУС: если пользователь хочет сбросить пример? Создадим скрытую возможность но не обязательно
+    // Чтобы интерфейс был еще информативнее, выводим количество строк (всегда 5)
+    // уже есть в info-badge
+</script>
+</body>
+</html>
